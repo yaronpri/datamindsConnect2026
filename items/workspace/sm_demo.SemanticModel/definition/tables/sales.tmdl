@@ -1,0 +1,36 @@
+table sales
+	lineageTag: 30ba87f1-cf78-435a-acd5-55bfd3a4d6e2
+	sourceLineageTag: [dbo].[sales]
+
+	measure 'Total Amount' = SUM(sales[amount])
+		formatString: #,0.00
+		lineageTag: 5047dbd7-9d30-44eb-b48e-e482014d6163
+
+	column region
+		dataType: string
+		lineageTag: 7561f57c-9cc1-494d-a9b6-3288582454fc
+		sourceLineageTag: region
+		summarizeBy: none
+		sourceColumn: region
+
+	column product
+		dataType: string
+		lineageTag: 2206b403-cbf1-4722-a234-620e263a41b6
+		sourceLineageTag: product
+		summarizeBy: none
+		sourceColumn: product
+
+	column amount
+		dataType: double
+		lineageTag: 5eab147e-e0e3-4abf-8693-02b958d13269
+		sourceLineageTag: amount
+		summarizeBy: sum
+		sourceColumn: amount
+
+	partition sales = entity
+		mode: directLake
+		source
+			entityName: sales
+			schemaName: dbo
+			expressionSource: DatabaseQuery
+

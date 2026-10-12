@@ -1,0 +1,32 @@
+# fabric-cicd parameterization: placeholder IDs in the item definitions are
+# replaced with the real IDs of the items deployed in the target workspace.
+find_replace:
+    # Notebook default lakehouse -> lh_demo
+    - find_value: "11111111-1111-1111-1111-111111111111"
+      replace_value:
+        _ALL_: "$items.Lakehouse.lh_demo.$id"
+      item_type: "Notebook"
+      item_name: "nb_demo"
+    # Notebook default lakehouse workspace -> target workspace
+    - find_value: "22222222-2222-2222-2222-222222222222"
+      replace_value:
+        _ALL_: "$workspace.$id"
+      item_type: "Notebook"
+      item_name: "nb_demo"
+    # Direct Lake semantic model -> lh_demo SQL analytics endpoint (server and database)
+    - find_value: "SQL_ENDPOINT_PLACEHOLDER"
+      replace_value:
+        _ALL_: "$items.Lakehouse.lh_demo.$sqlendpoint"
+      item_type: "SemanticModel"
+      item_name: "sm_demo"
+    - find_value: "33333333-3333-3333-3333-333333333333"
+      replace_value:
+        _ALL_: "$items.Lakehouse.lh_demo.$sqlendpointid"
+      item_type: "SemanticModel"
+      item_name: "sm_demo"
+    # Paginated report data source -> sm_demo
+    - find_value: "44444444-4444-4444-4444-444444444444"
+      replace_value:
+        _ALL_: "$items.SemanticModel.sm_demo.$id"
+      item_type: "PaginatedReport"
+      item_name: "rpt_demo"

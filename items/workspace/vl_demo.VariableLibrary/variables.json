@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/variableLibrary/definition/variables/1.0.0/schema.json",
+  "variables": [
+    {
+      "name": "workspace_name",
+      "note": "Name of the workspace",
+      "type": "String",
+      "value": "parentY"
+    }
+  ]
+}

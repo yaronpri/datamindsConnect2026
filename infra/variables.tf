@@ -74,6 +74,6 @@ variable "ado_branch" {
 }
 
 variable "ado_directory" {
-  description = "Repository folder the main workspace is connected to, for example /my-workspace."
+  description = "Repository folder the main workspace is connected to, for example /parentY."
   type        = string
 }

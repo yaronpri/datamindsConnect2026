@@ -1,0 +1,41 @@
+# Deploys the demo items in items/workspace to a Fabric workspace with fabric-cicd:
+#   lh_demo (Lakehouse), nb_demo (Notebook on lh_demo), vl_demo (Variable library),
+#   sm_demo (Direct Lake semantic model on lh_demo), rpt_demo (Paginated report on sm_demo)
+#
+# Queue-time inputs:
+#   - tenantId, clientId, workspaceName : pipeline parameters
+#   - CLIENT_SECRET                     : secret pipeline variable (ADO parameters cannot be secret)
+
+trigger: none
+
+parameters:
+  - name: tenantId
+    displayName: Tenant ID
+    type: string
+  - name: clientId
+    displayName: Service principal client ID
+    type: string
+  - name: workspaceName
+    displayName: Target workspace name
+    type: string
+    default: parentY
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+  - task: UsePythonVersion@0
+    displayName: Use Python 3.12
+    inputs:
+      versionSpec: "3.12"
+
+  - script: pip install --quiet fabric-cicd==1.4.0 azure-identity requests
+    displayName: Install fabric-cicd
+
+  - script: python items/deploy.py
+    displayName: Deploy items
+    env:
+      TENANT_ID: ${{ parameters.tenantId }}
+      CLIENT_ID: ${{ parameters.clientId }}
+      CLIENT_SECRET: $(CLIENT_SECRET)
+      WORKSPACE_NAME: ${{ parameters.workspaceName }}

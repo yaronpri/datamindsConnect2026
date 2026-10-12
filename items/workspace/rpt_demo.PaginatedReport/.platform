@@ -1,0 +1,12 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "PaginatedReport",
+    "displayName": "rpt_demo",
+    "description": "Sales by region from sm_demo"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "4d53556e-72d0-417f-8ffe-f6668cf34ec2"
+  }
+}

@@ -1,0 +1,58 @@
+# Release pipeline: deploys the items committed in the parentY folder to test-parentY with fabric-cicd.
+#
+# Trigger : pushing a tag (for example v1.0.0) that points to a commit on main.
+# Publish : fabric-cicd bulk publish (experimental) with dynamic replacement variables (release/parameter.yml).
+#
+# Pipeline variables (set on the pipeline definition):
+#   - TENANT_ID, CLIENT_ID : service principal tenant and client id
+#   - CLIENT_SECRET        : service principal secret (secret variable)
+
+name: release-$(Build.SourceBranchName)-$(Rev:r)
+
+trigger:
+  branches:
+    include:
+      - refs/tags/*
+
+pr: none
+
+variables:
+  TARGET_WORKSPACE: test-parentY
+  ENVIRONMENT: TEST
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+  - checkout: self
+    fetchDepth: 0
+    persistCredentials: true
+
+  - script: |
+      set -e
+      if [[ "$(Build.SourceBranch)" != refs/tags/* ]]; then
+        echo "##vso[task.logissue type=error]This pipeline deploys tags only (got $(Build.SourceBranch))."
+        exit 1
+      fi
+      git fetch --quiet origin main
+      if ! git merge-base --is-ancestor HEAD origin/main; then
+        echo "##vso[task.logissue type=error]Tag $(Build.SourceBranchName) does not point to a commit on main."
+        exit 1
+      fi
+      echo "Tag $(Build.SourceBranchName) ($(git rev-parse --short HEAD)) is on main."
+    displayName: Verify tag is on main
+
+  - task: UsePythonVersion@0
+    displayName: Use Python 3.12
+    inputs:
+      versionSpec: "3.12"
+
+  - script: pip install --quiet fabric-cicd==1.4.0 azure-identity
+    displayName: Install fabric-cicd
+
+  - script: python release/deploy.py
+    displayName: Deploy to $(TARGET_WORKSPACE)
+    env:
+      TENANT_ID: $(TENANT_ID)
+      CLIENT_ID: $(CLIENT_ID)
+      CLIENT_SECRET: $(CLIENT_SECRET)
