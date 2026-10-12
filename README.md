@@ -12,6 +12,38 @@ Sample that takes a Microsoft Fabric project from an empty tenant to a tag-based
 parentY workspace --(commit from workspace)--> parentY/ folder on main --(git tag v1.0.0)--> test-parentY workspace
 ```
 
+## Recommended release flow
+
+![Recommended Fabric release flow: dev integration, main promotes as one tag](docs/fabric-cicd-release-flow.png)
+
+The flow separates developer integration (CI) from automated workspace deployment (CD):
+
+**Continuous Integration (developer experience: many developers, many cycles per day)**
+
+1. Developers branch out a **feature workspace** from the **main (dev) workspace**. Both are Git connected; the feature workspace syncs to a `feature/*` branch.
+2. Changes are merged into `dev` with a pull request.
+3. The main (dev) workspace runs **update from Git** to pick up the merged changes.
+
+**Continuous Deployment (full workspace deployment: automation via service principal, limited cycles per day)**
+
+1. A **release-scoped cherry-pick** moves the changes selected for the release from `dev` to `main`.
+2. Every release is **tagged on `main`** (for example `v1.4.0`).
+3. The tag is deployed with fabric-cicd (or the Bulk Import API) to the **test workspace**, which is not Git connected.
+4. After approval, the **same commit** (no cherry-pick) is promoted to the **production workspace**, which is also not Git connected.
+
+**Configuration layer:** Variable Library value sets and the deployment plan (here, `release/parameter.yml`) carry the per-environment differences.
+
+Tagging every release on `main` and deploying that tag to every environment gives a reproducible production: the whole validated `main` is promoted as one unit, with no per-commit drift.
+
+How this sample maps to the flow:
+
+| Flow | This sample |
+|------|-------------|
+| Main (dev) workspace | `parentY` (Git connected; set `ado_branch = "dev"` in `infra/terraform.tfvars` to follow the flow) |
+| Test workspace | `test-parentY`, deployed by `release/` on a tag on `main` |
+| Production workspace | `prod-parentY` (created by `infra/`; add a promotion stage with approval to deploy the same tag) |
+| Configuration layer | `vl_demo` variable library and `release/parameter.yml` |
+
 ## Repository layout
 
 ```
@@ -32,6 +64,7 @@ release/
   deploy.py             fabric-cicd bulk publish of parentY/
   parameter.yml         Dynamic replacement variables (no hard-coded IDs)
 parentY/                Git folder of the parentY workspace (filled by Fabric when you commit)
+docs/                   Images used by this README
 ```
 
 ## What the infrastructure stage creates
