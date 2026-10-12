@@ -1,0 +1,153 @@
+# Deploys a Fabric environment with Terraform:
+#   Fabric capacity (Azure) -> <name> / test-<name> / prod-<name> workspaces -> Git connect <name> to Azure DevOps
+#
+# Stages: Plan -> Approve (manual) -> Apply
+#   - Plan    : terraform plan, shown in the run Summary tab and the step log; plan file published as artifact
+#   - Approve : manual validation; Resume to apply, Reject to stop (skipped when the plan has no changes)
+#   - Apply   : applies exactly the reviewed plan file
+#
+# Queue-time inputs:
+#   - tenantId, clientId, subscriptionId : pipeline parameters
+#   - CLIENT_SECRET                      : secret pipeline variable (ADO parameters cannot be secret)
+#
+# Environment settings: infra/terraform.tfvars ; state location: infra/backend.hcl
+
+trigger: none
+
+parameters:
+  - name: tenantId
+    displayName: Tenant ID
+    type: string
+  - name: clientId
+    displayName: Service principal client ID
+    type: string
+  - name: subscriptionId
+    displayName: Azure subscription ID
+    type: string
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  TF_DIR: infra
+  TF_VERSION: 1.13.1
+
+stages:
+  # ---------------------------------------------------------------- PLAN
+  - stage: Plan
+    jobs:
+      - job: Plan
+        steps:
+          - checkout: self
+
+          - script: |
+              set -e
+              curl -fsSLo /tmp/tf.zip "https://releases.hashicorp.com/terraform/$(TF_VERSION)/terraform_$(TF_VERSION)_linux_amd64.zip"
+              sudo unzip -o -q /tmp/tf.zip -d /usr/local/bin
+              terraform -version
+            displayName: Install Terraform
+
+          - script: |
+              set -e
+              if [ -z "$CLIENT_SECRET" ]; then
+                echo "##vso[task.logissue type=error]Secret variable CLIENT_SECRET is not set."
+                exit 1
+              fi
+              az login --service-principal -u "${{ parameters.clientId }}" --password="$CLIENT_SECRET" --tenant "${{ parameters.tenantId }}" --output none
+              az account set --subscription "${{ parameters.subscriptionId }}"
+              az provider register --namespace Microsoft.Fabric --wait
+            displayName: Login as service principal and register Microsoft.Fabric
+            env:
+              CLIENT_SECRET: $(CLIENT_SECRET)
+
+          - script: |
+              set -e
+              terraform init -input=false -backend-config=backend.hcl
+              terraform validate
+              set +e
+              terraform plan -input=false -detailed-exitcode -out=tfplan
+              rc=$?
+              set -e
+              if [ $rc -eq 1 ]; then exit 1; fi
+              if [ $rc -eq 2 ]; then HAS_CHANGES=true; else HAS_CHANGES=false; fi
+              echo "##vso[task.setvariable variable=hasChanges;isOutput=true]$HAS_CHANGES"
+
+              terraform show -no-color tfplan > plan.txt
+              {
+                echo "## Terraform plan (changes pending approval: $HAS_CHANGES)"
+                echo '```'
+                cat plan.txt
+                echo '```'
+              } > "$(Agent.TempDirectory)/plan.md"
+              echo "##vso[task.uploadsummary]$(Agent.TempDirectory)/plan.md"
+            name: planStep
+            displayName: Terraform init / validate / plan
+            workingDirectory: $(TF_DIR)
+            env:
+              TF_VAR_tenant_id: ${{ parameters.tenantId }}
+              TF_VAR_client_id: ${{ parameters.clientId }}
+              TF_VAR_subscription_id: ${{ parameters.subscriptionId }}
+              TF_VAR_client_secret: $(CLIENT_SECRET)
+              ARM_TENANT_ID: ${{ parameters.tenantId }}
+              ARM_CLIENT_ID: ${{ parameters.clientId }}
+              ARM_SUBSCRIPTION_ID: ${{ parameters.subscriptionId }}
+              ARM_CLIENT_SECRET: $(CLIENT_SECRET)
+
+          - publish: $(TF_DIR)/tfplan
+            artifact: tfplan
+            displayName: Publish plan file
+
+  # ---------------------------------------------------------------- APPROVE
+  - stage: Approve
+    dependsOn: Plan
+    condition: and(succeeded(), eq(dependencies.Plan.outputs['Plan.planStep.hasChanges'], 'true'))
+    jobs:
+      - job: WaitForApproval
+        pool: server
+        timeoutInMinutes: 1440
+        steps:
+          - task: ManualValidation@1
+            inputs:
+              notifyUsers: $(Build.RequestedForEmail)
+              instructions: Review the Terraform plan (run Summary tab, or the Plan stage step log). Resume to apply it, Reject to stop.
+              onTimeout: reject
+
+  # ---------------------------------------------------------------- APPLY
+  - stage: Apply
+    dependsOn:
+      - Plan
+      - Approve
+    condition: succeeded()
+    jobs:
+      - job: Apply
+        steps:
+          - checkout: self
+
+          - download: current
+            artifact: tfplan
+            displayName: Download reviewed plan
+
+          - script: |
+              set -e
+              curl -fsSLo /tmp/tf.zip "https://releases.hashicorp.com/terraform/$(TF_VERSION)/terraform_$(TF_VERSION)_linux_amd64.zip"
+              sudo unzip -o -q /tmp/tf.zip -d /usr/local/bin
+              terraform -version
+            displayName: Install Terraform
+
+          - script: |
+              set -e
+              cp "$(Pipeline.Workspace)/tfplan/tfplan" ./tfplan
+              terraform init -input=false -backend-config=backend.hcl
+              terraform apply -input=false tfplan
+              terraform output
+            displayName: Terraform apply (reviewed plan)
+            workingDirectory: $(TF_DIR)
+            env:
+              TF_VAR_tenant_id: ${{ parameters.tenantId }}
+              TF_VAR_client_id: ${{ parameters.clientId }}
+              TF_VAR_subscription_id: ${{ parameters.subscriptionId }}
+              TF_VAR_client_secret: $(CLIENT_SECRET)
+              ARM_TENANT_ID: ${{ parameters.tenantId }}
+              ARM_CLIENT_ID: ${{ parameters.clientId }}
+              ARM_SUBSCRIPTION_ID: ${{ parameters.subscriptionId }}
+              ARM_CLIENT_SECRET: $(CLIENT_SECRET)
