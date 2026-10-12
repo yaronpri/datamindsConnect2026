@@ -1,6 +1,10 @@
-# Release pipeline: deploys the items committed in the parentY folder to test-parentY with fabric-cicd.
+# Release pipeline: deploys the items committed in the parentY folder with fabric-cicd.
 #
 # Trigger : pushing a tag (for example v1.0.0) that points to a commit on main.
+# Stages  : Validate (tag is on main) -> Test (test-parentY) -> Prod (prod-parentY).
+#           Test and Prod are deployment jobs that target the Azure DevOps environments
+#           test-parentY and prod-parentY, so each environment shows its deployment history.
+#           Add an Approvals check on the prod-parentY environment to gate Prod.
 # Publish : fabric-cicd bulk publish (experimental) with dynamic replacement variables (release/parameter.yml).
 #
 # Pipeline variables (set on the pipeline definition):
@@ -16,43 +20,61 @@ trigger:
 
 pr: none
 
-variables:
-  TARGET_WORKSPACE: test-parentY
-  ENVIRONMENT: TEST
-
 pool:
   vmImage: ubuntu-latest
 
-steps:
-  - checkout: self
-    fetchDepth: 0
-    persistCredentials: true
+stages:
+  - stage: Validate
+    jobs:
+      - job: VerifyTag
+        displayName: Verify tag is on main
+        steps:
+          - checkout: self
+            fetchDepth: 0
+            persistCredentials: true
 
-  - script: |
-      set -e
-      if [[ "$(Build.SourceBranch)" != refs/tags/* ]]; then
-        echo "##vso[task.logissue type=error]This pipeline deploys tags only (got $(Build.SourceBranch))."
-        exit 1
-      fi
-      git fetch --quiet origin main
-      if ! git merge-base --is-ancestor HEAD origin/main; then
-        echo "##vso[task.logissue type=error]Tag $(Build.SourceBranchName) does not point to a commit on main."
-        exit 1
-      fi
-      echo "Tag $(Build.SourceBranchName) ($(git rev-parse --short HEAD)) is on main."
-    displayName: Verify tag is on main
+          - script: |
+              set -e
+              if [[ "$(Build.SourceBranch)" != refs/tags/* ]]; then
+                echo "##vso[task.logissue type=error]This pipeline deploys tags only (got $(Build.SourceBranch))."
+                exit 1
+              fi
+              git fetch --quiet origin main
+              if ! git merge-base --is-ancestor HEAD origin/main; then
+                echo "##vso[task.logissue type=error]Tag $(Build.SourceBranchName) does not point to a commit on main."
+                exit 1
+              fi
+              echo "Tag $(Build.SourceBranchName) ($(git rev-parse --short HEAD)) is on main."
+            displayName: Verify tag is on main
 
-  - task: UsePythonVersion@0
-    displayName: Use Python 3.12
-    inputs:
-      versionSpec: "3.12"
+  - stage: Test
+    displayName: Test (test-parentY)
+    dependsOn: Validate
+    jobs:
+      - deployment: Deploy
+        displayName: Deploy to test-parentY
+        environment: test-parentY
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - template: deploy-steps.yml
+                  parameters:
+                    targetWorkspace: test-parentY
+                    environment: TEST
 
-  - script: pip install --quiet fabric-cicd==1.4.0 azure-identity
-    displayName: Install fabric-cicd
-
-  - script: python release/deploy.py
-    displayName: Deploy to $(TARGET_WORKSPACE)
-    env:
-      TENANT_ID: $(TENANT_ID)
-      CLIENT_ID: $(CLIENT_ID)
-      CLIENT_SECRET: $(CLIENT_SECRET)
+  - stage: Prod
+    displayName: Prod (prod-parentY)
+    dependsOn: Test
+    jobs:
+      - deployment: Deploy
+        displayName: Deploy to prod-parentY
+        environment: prod-parentY
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - template: deploy-steps.yml
+                  parameters:
+                    targetWorkspace: prod-parentY
+                    environment: PROD

@@ -6,10 +6,10 @@ Sample that takes a Microsoft Fabric project from an empty tenant to a tag-based
 |-------|--------|----------|--------------|
 | 1. Infrastructure | `infra/` | Terraform: Plan, Approve, Apply | Capacity, workspaces `parentY`, `test-parentY`, `prod-parentY`, and the Git connection of `parentY` to the `parentY/` folder |
 | 2. Seed items | `items/` | Manual run | Creates demo items in `parentY` with fabric-cicd: lakehouse, notebook, variable library, Direct Lake semantic model, paginated report |
-| 3. Release | `release/` | Triggered by a tag on `main` | Deploys the items committed in `parentY/` to `test-parentY` with fabric-cicd bulk publish and dynamic replacement variables |
+| 3. Release | `release/` | Triggered by a tag on `main`: Validate, Test, Prod (approval) | Deploys the items committed in `parentY/` to `test-parentY`, then the same tag to `prod-parentY`, with fabric-cicd bulk publish and dynamic replacement variables |
 
 ```
-parentY workspace --(commit from workspace)--> parentY/ folder on main --(git tag v1.0.0)--> test-parentY workspace
+parentY workspace --(commit from workspace)--> parentY/ folder on main --(git tag v1.0.0)--> test-parentY workspace --(approval)--> prod-parentY workspace
 ```
 
 ## Recommended release flow
@@ -40,8 +40,8 @@ How this sample maps to the flow:
 | Flow | This sample |
 |------|-------------|
 | Main (dev) workspace | `parentY` (Git connected; set `ado_branch = "dev"` in `infra/terraform.tfvars` to follow the flow) |
-| Test workspace | `test-parentY`, deployed by `release/` on a tag on `main` |
-| Production workspace | `prod-parentY` (created by `infra/`; add a promotion stage with approval to deploy the same tag) |
+| Test workspace | `test-parentY`, deployed by the `Test` stage of `release/` on a tag on `main` |
+| Production workspace | `prod-parentY`, deployed by the `Prod` stage with the same tagged commit after the environment approval |
 | Configuration layer | `vl_demo` variable library and `release/parameter.yml` |
 
 ## Repository layout
@@ -60,7 +60,8 @@ items/
   deploy.py             fabric-cicd publish, runs the notebook, refreshes the model
   workspace/            Item definitions with placeholder IDs, plus parameter.yml
 release/
-  azure-pipelines.yml   Tag-triggered release to test-parentY
+  azure-pipelines.yml   Tag-triggered release: Validate, Test (test-parentY), Prod (prod-parentY)
+  deploy-steps.yml      Deployment steps shared by the Test and Prod stages
   deploy.py             fabric-cicd bulk publish of parentY/
   parameter.yml         Dynamic replacement variables (no hard-coded IDs)
 parentY/                Git folder of the parentY workspace (filled by Fabric when you commit)
@@ -130,7 +131,10 @@ The pipeline runs in three stages: **Plan**, **Approve** (manual), **Apply**. Th
 1. Create a pipeline from `release/azure-pipelines.yml`. Add the variables **`TENANT_ID`**, **`CLIENT_ID`**, and secret **`CLIENT_SECRET`**, then **Save** the pipeline.
 2. Create a tag on `main`, from Git (`git tag v1.0.0 && git push origin v1.0.0`) or in the portal (**Repos > Tags > New tag**).
 3. The pipeline verifies the tag is on `main` and deploys `parentY/` to `test-parentY`. In `vl_demo`, `workspace_name` becomes `test-parentY`.
-4. In `test-parentY`, run `nb_demo` and refresh `sm_demo` so `rpt_demo` shows data.
+4. The `Prod` stage waits for approval, then deploys the same commit to `prod-parentY`.
+5. In each target workspace, run `nb_demo` and refresh `sm_demo` so `rpt_demo` shows data.
+
+The `Test` and `Prod` stages are deployment jobs that target the Azure DevOps environments `test-parentY` and `prod-parentY`. They are created on the first run; **Pipelines > Environments** then shows the deployment history of each workspace. To gate production, open the `prod-parentY` environment, select **Approvals and checks**, and add an **Approvals** check. On the first run, Azure DevOps may ask you to **Permit** the pipeline to use each environment.
 
 See `release/README.md` for the parameterization details.
 
