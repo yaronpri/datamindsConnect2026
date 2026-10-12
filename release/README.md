@@ -8,7 +8,7 @@
   ```
   Tags on other branches fail the "Verify tag is on main" step.
 - **Bulk publish:** Lakehouse, VariableLibrary, Notebook and SemanticModel are published with the bulk import API (experimental `enable_bulk_publish` flag).
-- **Standard publish for PaginatedReport:** bulk import does not yet support service principals for paginated reports (`PrincipalTypeNotSupported`), so `deploy.py` publishes them in a second, standard pass. This is a temporary workaround only; once bulk import supports service principals for paginated reports, the second pass can be removed. `$items.SemanticModel.sm_demo.$id` still resolves because the model was deployed in the first pass.
+- **Standard publish for PaginatedReport:** paginated reports do not yet support service principals for Git integration and the bulk import API (`PrincipalTypeNotSupported`), so `deploy.py` publishes them in a second, standard pass. This is a temporary workaround only; once paginated reports support service principals for these APIs, the second pass can be removed. `$items.SemanticModel.sm_demo.$id` still resolves because the model was deployed in the first pass.
 - **Dynamic parameterization:** `parameter.yml` has no hard-coded IDs. Each `find_value` is a dynamic variable that resolves the value in the source workspace (`$workspace.parentY...`), and each `replace_value` resolves the value in the target workspace.
 
 | Item | What is re-pointed | find_value (source) | replace_value (target) |

@@ -103,7 +103,7 @@ See `release/README.md` for the parameterization details.
 
 ## Notes
 
-- **Bulk publish and paginated reports:** the bulk import API does not yet support service principals for paginated reports (`PrincipalTypeNotSupported`). `release/deploy.py` therefore publishes `rpt_demo` in a second, standard pass. This is a temporary workaround; remove the second pass once bulk import supports it.
+- **Bulk publish and paginated reports:** paginated reports do not yet support service principals for Git integration and the bulk import API (`PrincipalTypeNotSupported`). `release/deploy.py` therefore publishes `rpt_demo` in a second, standard pass. This is a temporary workaround; remove the second pass once paginated reports support it.
 - **Renaming parentY:** the name appears in `infra/terraform.tfvars` (`main_workspace_name`, `ado_directory`), the `parentY/` folder, `release/parameter.yml` (`$workspace.parentY...`), `release/deploy.py` (source folder), `release/azure-pipelines.yml` (`TARGET_WORKSPACE`), and the `vl_demo` default value in `items/`.
 - **Feature branch flow:** if the workspace is connected to a branch other than `main` (for example `dev`), merge it to `main` with a pull request before tagging.
 - **Experimental features:** bulk publish needs fabric-cicd 1.4.0 or later and the `enable_experimental_features` and `enable_bulk_publish` feature flags.

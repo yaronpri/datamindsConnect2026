@@ -1,8 +1,8 @@
 """Deploy the items committed in the parentY folder to a target workspace with fabric-cicd.
 
 Phase 1 publishes every supported item type with bulk publish (one bulkImportDefinitions call per dependency batch).
-Phase 2 publishes PaginatedReport with the standard per-item API, because bulk import does not yet support
-service principal identities for paginated reports (PrincipalTypeNotSupported).
+Phase 2 publishes PaginatedReport with the standard per-item API, because paginated reports do not yet support
+service principal identities for Git integration and the bulk import API (PrincipalTypeNotSupported).
 
 Environment variables: TENANT_ID, CLIENT_ID, CLIENT_SECRET, TARGET_WORKSPACE, ENVIRONMENT.
 """
@@ -45,9 +45,9 @@ append_feature_flag("enable_bulk_publish")
 publish_all_items(workspace_for(BULK_ITEM_TYPES))
 
 # Phase 2: standard publish.
-# NOTE: this second pass exists only because the bulk import API does not yet support service principal
-# identities for PaginatedReport (PrincipalTypeNotSupported). Once it does, add "PaginatedReport" to
-# BULK_ITEM_TYPES and remove this phase.
+# NOTE: this second pass exists only because PaginatedReport does not yet support service principal
+# identities for Git integration and the bulk import API (PrincipalTypeNotSupported). Once it does,
+# add "PaginatedReport" to BULK_ITEM_TYPES and remove this phase.
 # A new FabricWorkspace re-reads the target workspace, so
 # $items.SemanticModel.sm_demo.$id resolves to the model deployed in phase 1.
 constants.FEATURE_FLAG.discard("enable_bulk_publish")
