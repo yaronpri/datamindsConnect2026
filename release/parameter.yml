@@ -1,40 +1,40 @@
-# fabric-cicd parameterization for deploying the parentY items to another workspace.
+# fabric-cicd parameterization for deploying the sales-analytics items to another workspace.
 #
 # No hard-coded IDs: every find_value is a dynamic variable that resolves the value used in
-# the source workspace (parentY) at runtime, and every replace_value resolves the matching value
+# the source workspace (sales-analytics) at runtime, and every replace_value resolves the matching value
 # in the target workspace. _ALL_ applies the same rule to any target environment.
 
 find_replace:
     # Notebook: default lakehouse id -> lh_demo in the target workspace
-    - find_value: "$workspace.parentY.$items.Lakehouse.lh_demo.$id"
+    - find_value: "$workspace.sales-analytics.$items.Lakehouse.lh_demo.$id"
       replace_value:
         _ALL_: "$items.Lakehouse.lh_demo.$id"
       item_type: "Notebook"
       item_name: "nb_demo"
 
     # Notebook: default lakehouse workspace id -> target workspace
-    - find_value: "$workspace.parentY.$id"
+    - find_value: "$workspace.sales-analytics.$id"
       replace_value:
         _ALL_: "$workspace.$id"
       item_type: "Notebook"
       item_name: "nb_demo"
 
     # Semantic model (Direct Lake): SQL analytics endpoint server -> target lh_demo
-    - find_value: "$workspace.parentY.$items.Lakehouse.lh_demo.$sqlendpoint"
+    - find_value: "$workspace.sales-analytics.$items.Lakehouse.lh_demo.$sqlendpoint"
       replace_value:
         _ALL_: "$items.Lakehouse.lh_demo.$sqlendpoint"
       item_type: "SemanticModel"
       item_name: "sm_demo"
 
     # Semantic model (Direct Lake): SQL analytics endpoint id -> target lh_demo
-    - find_value: "$workspace.parentY.$items.Lakehouse.lh_demo.$sqlendpointid"
+    - find_value: "$workspace.sales-analytics.$items.Lakehouse.lh_demo.$sqlendpointid"
       replace_value:
         _ALL_: "$items.Lakehouse.lh_demo.$sqlendpointid"
       item_type: "SemanticModel"
       item_name: "sm_demo"
 
     # Paginated report: data source -> sm_demo in the target workspace
-    - find_value: "$workspace.parentY.$items.SemanticModel.sm_demo.$id"
+    - find_value: "$workspace.sales-analytics.$items.SemanticModel.sm_demo.$id"
       replace_value:
         _ALL_: "$items.SemanticModel.sm_demo.$id"
       item_type: "PaginatedReport"

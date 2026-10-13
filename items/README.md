@@ -6,7 +6,7 @@ Item definitions (Fabric Git format) in `workspace/`, deployed to a workspace wi
 |------|------|-------|
 | `lh_demo` | Lakehouse | Schema-enabled (`dbo`) |
 | `nb_demo` | Notebook | Default lakehouse is `lh_demo`; writes the `dbo.sales` table |
-| `vl_demo` | Variable library | `workspace_name` = `parentY` |
+| `vl_demo` | Variable library | `workspace_name` = `sales-analytics` |
 | `sm_demo` | Semantic model | Direct Lake on the `lh_demo` SQL analytics endpoint, table `sales` |
 | `rpt_demo` | Paginated report | Sales by region, data source is `sm_demo` |
 

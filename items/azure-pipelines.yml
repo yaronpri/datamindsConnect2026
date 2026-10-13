@@ -18,7 +18,7 @@ parameters:
   - name: workspaceName
     displayName: Target workspace name
     type: string
-    default: parentY
+    default: sales-analytics
 
 pool:
   vmImage: ubuntu-latest

@@ -1,0 +1,1 @@
+Git folder of the **sales-analytics** workspace. Fabric writes the workspace items here when you commit from the workspace (Source control > Changes > Commit). The release pipeline (`release/`) deploys the items in this folder.

@@ -1,4 +1,4 @@
-"""Deploy the items committed in the parentY folder to a target workspace with fabric-cicd.
+"""Deploy the items committed in the sales-analytics folder to a target workspace with fabric-cicd.
 
 Phase 1 publishes every supported item type with bulk publish (one bulkImportDefinitions call per dependency batch).
 Phase 2 publishes PaginatedReport with the standard per-item API, because paginated reports do not yet support
@@ -32,7 +32,7 @@ def workspace_for(item_types):
     return FabricWorkspace(
         workspace_name=os.environ["TARGET_WORKSPACE"],
         environment=os.environ.get("ENVIRONMENT", "TEST"),
-        repository_directory=str(ROOT / "parentY"),
+        repository_directory=str(ROOT / "sales-analytics"),
         parameter_file_path=str(ROOT / "release" / "parameter.yml"),
         item_type_in_scope=item_types,
         token_credential=credential,

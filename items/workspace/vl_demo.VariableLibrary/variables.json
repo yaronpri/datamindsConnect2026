@@ -5,7 +5,7 @@
       "name": "workspace_name",
       "note": "Name of the workspace",
       "type": "String",
-      "value": "parentY"
+      "value": "sales-analytics"
     }
   ]
 }

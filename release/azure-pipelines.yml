@@ -1,10 +1,10 @@
-# Release pipeline: deploys the items committed in the parentY folder with fabric-cicd.
+# Release pipeline: deploys the items committed in the sales-analytics folder with fabric-cicd.
 #
 # Trigger : pushing a tag (for example v1.0.0) that points to a commit on main.
-# Stages  : Validate (tag is on main) -> Test (test-parentY) -> Prod (prod-parentY).
+# Stages  : Validate (tag is on main) -> Test (test-sales-analytics) -> Prod (prod-sales-analytics).
 #           Test and Prod are deployment jobs that target the Azure DevOps environments
-#           test-parentY and prod-parentY, so each environment shows its deployment history.
-#           Add an Approvals check on the prod-parentY environment to gate Prod.
+#           test-sales-analytics and prod-sales-analytics, so each environment shows its deployment history.
+#           Add an Approvals check on the prod-sales-analytics environment to gate Prod.
 # Publish : fabric-cicd bulk publish (experimental) with dynamic replacement variables (release/parameter.yml).
 #
 # Pipeline variables (set on the pipeline definition):
@@ -48,33 +48,33 @@ stages:
             displayName: Verify tag is on main
 
   - stage: Test
-    displayName: Test (test-parentY)
+    displayName: Test (test-sales-analytics)
     dependsOn: Validate
     jobs:
       - deployment: Deploy
-        displayName: Deploy to test-parentY
-        environment: test-parentY
+        displayName: Deploy to test-sales-analytics
+        environment: test-sales-analytics
         strategy:
           runOnce:
             deploy:
               steps:
                 - template: deploy-steps.yml
                   parameters:
-                    targetWorkspace: test-parentY
+                    targetWorkspace: test-sales-analytics
                     environment: TEST
 
   - stage: Prod
-    displayName: Prod (prod-parentY)
+    displayName: Prod (prod-sales-analytics)
     dependsOn: Test
     jobs:
       - deployment: Deploy
-        displayName: Deploy to prod-parentY
-        environment: prod-parentY
+        displayName: Deploy to prod-sales-analytics
+        environment: prod-sales-analytics
         strategy:
           runOnce:
             deploy:
               steps:
                 - template: deploy-steps.yml
                   parameters:
-                    targetWorkspace: prod-parentY
+                    targetWorkspace: prod-sales-analytics
                     environment: PROD

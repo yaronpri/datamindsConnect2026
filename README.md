@@ -4,12 +4,12 @@ Sample that takes a Microsoft Fabric project from an empty tenant to a tag-based
 
 | Stage | Folder | Pipeline | What it does |
 |-------|--------|----------|--------------|
-| 1. Infrastructure | `infra/` | Terraform: Plan, Approve, Apply | Capacity, workspaces `parentY`, `test-parentY`, `prod-parentY`, and the Git connection of `parentY` to the `parentY/` folder |
-| 2. Seed items | `items/` | Manual run | Creates demo items in `parentY` with fabric-cicd: lakehouse, notebook, variable library, Direct Lake semantic model, paginated report |
-| 3. Release | `release/` | Triggered by a tag on `main`: Validate, Test, Prod (approval) | Deploys the items committed in `parentY/` to `test-parentY`, then the same tag to `prod-parentY`, with fabric-cicd bulk publish and dynamic replacement variables |
+| 1. Infrastructure | `infra/` | Terraform: Plan, Approve, Apply | Capacity, workspaces `sales-analytics`, `test-sales-analytics`, `prod-sales-analytics`, and the Git connection of `sales-analytics` to the `sales-analytics/` folder |
+| 2. Seed items | `items/` | Manual run | Creates demo items in `sales-analytics` with fabric-cicd: lakehouse, notebook, variable library, Direct Lake semantic model, paginated report |
+| 3. Release | `release/` | Triggered by a tag on `main`: Validate, Test, Prod (approval) | Deploys the items committed in `sales-analytics/` to `test-sales-analytics`, then the same tag to `prod-sales-analytics`, with fabric-cicd bulk publish and dynamic replacement variables |
 
 ```
-parentY workspace --(commit from workspace)--> parentY/ folder on main --(git tag v1.0.0)--> test-parentY workspace --(approval)--> prod-parentY workspace
+sales-analytics workspace --(commit from workspace)--> sales-analytics/ folder on main --(git tag v1.0.0)--> test-sales-analytics workspace --(approval)--> prod-sales-analytics workspace
 ```
 
 ## Recommended release flow
@@ -39,9 +39,9 @@ How this sample maps to the flow:
 
 | Flow | This sample |
 |------|-------------|
-| Main (dev) workspace | `parentY` (Git connected; set `ado_branch = "dev"` in `infra/terraform.tfvars` to follow the flow) |
-| Test workspace | `test-parentY`, deployed by the `Test` stage of `release/` on a tag on `main` |
-| Production workspace | `prod-parentY`, deployed by the `Prod` stage with the same tagged commit after the environment approval |
+| Main (dev) workspace | `sales-analytics` (Git connected; set `ado_branch = "dev"` in `infra/terraform.tfvars` to follow the flow) |
+| Test workspace | `test-sales-analytics`, deployed by the `Test` stage of `release/` on a tag on `main` |
+| Production workspace | `prod-sales-analytics`, deployed by the `Prod` stage with the same tagged commit after the environment approval |
 | Configuration layer | `vl_demo` variable library and `release/parameter.yml` |
 
 ## Repository layout
@@ -56,15 +56,16 @@ infra/
   terraform.tfvars      Environment settings: edit this
   backend.hcl           Terraform state location: edit this
 items/
-  azure-pipelines.yml   Seeds the demo items into parentY (run once)
+  azure-pipelines.yml   Seeds the demo items into sales-analytics (run once)
   deploy.py             fabric-cicd publish, runs the notebook, refreshes the model
   workspace/            Item definitions with placeholder IDs, plus parameter.yml
 release/
-  azure-pipelines.yml   Tag-triggered release: Validate, Test (test-parentY), Prod (prod-parentY)
+  azure-pipelines.yml   Tag-triggered release: Validate, Test (test-sales-analytics), Prod (prod-sales-analytics)
   deploy-steps.yml      Deployment steps shared by the Test and Prod stages
-  deploy.py             fabric-cicd bulk publish of parentY/
+  deploy.py             fabric-cicd bulk publish of sales-analytics/
   parameter.yml         Dynamic replacement variables (no hard-coded IDs)
-parentY/                Git folder of the parentY workspace (filled by Fabric when you commit)
+sales-analytics/
+                        Git folder of the sales-analytics workspace (filled by Fabric when you commit)
 docs/                   Images used by this README
 ```
 
@@ -101,7 +102,7 @@ The pipeline runs in three stages: **Plan**, **Approve** (manual), **Apply**. Th
 
 **Azure DevOps:**
 
-- The target folder (`/parentY`) exists in the repository and branch (this repository includes it).
+- The target folder (`/sales-analytics`) exists in the repository and branch (this repository includes it).
 - Microsoft-hosted agent parallelism (or change `pool` to a self-hosted pool).
 
 ## Setup
@@ -123,25 +124,25 @@ The pipeline runs in three stages: **Plan**, **Approve** (manual), **Apply**. Th
 ### 2. Seed the demo items
 
 1. Create a pipeline from `items/azure-pipelines.yml` and add the secret variable **`CLIENT_SECRET`**.
-2. Run it with **Tenant ID**, **Service principal client ID**, and **Target workspace name** (`parentY`). It publishes the items, runs `nb_demo` to create `dbo.sales`, and refreshes `sm_demo`.
-3. In the `parentY` workspace, open **Source control** and **Commit** the new items. Fabric writes them to the `parentY/` folder.
+2. Run it with **Tenant ID**, **Service principal client ID**, and **Target workspace name** (`sales-analytics`). It publishes the items, runs `nb_demo` to create `dbo.sales`, and refreshes `sm_demo`.
+3. In the `sales-analytics` workspace, open **Source control** and **Commit** the new items. Fabric writes them to the `sales-analytics/` folder.
 
 ### 3. Release with a tag
 
 1. Create a pipeline from `release/azure-pipelines.yml`. Add the variables **`TENANT_ID`**, **`CLIENT_ID`**, and secret **`CLIENT_SECRET`**, then **Save** the pipeline.
 2. Create a tag on `main`, from Git (`git tag v1.0.0 && git push origin v1.0.0`) or in the portal (**Repos > Tags > New tag**).
-3. The pipeline verifies the tag is on `main` and deploys `parentY/` to `test-parentY`. In `vl_demo`, `workspace_name` becomes `test-parentY`.
-4. The `Prod` stage waits for approval, then deploys the same commit to `prod-parentY`.
+3. The pipeline verifies the tag is on `main` and deploys `sales-analytics/` to `test-sales-analytics`. In `vl_demo`, `workspace_name` becomes `test-sales-analytics`.
+4. The `Prod` stage waits for approval, then deploys the same commit to `prod-sales-analytics`.
 5. In each target workspace, run `nb_demo` and refresh `sm_demo` so `rpt_demo` shows data.
 
-The `Test` and `Prod` stages are deployment jobs that target the Azure DevOps environments `test-parentY` and `prod-parentY`. They are created on the first run; **Pipelines > Environments** then shows the deployment history of each workspace. To gate production, open the `prod-parentY` environment, select **Approvals and checks**, and add an **Approvals** check. On the first run, Azure DevOps may ask you to **Permit** the pipeline to use each environment.
+The `Test` and `Prod` stages are deployment jobs that target the Azure DevOps environments `test-sales-analytics` and `prod-sales-analytics`. They are created on the first run; **Pipelines > Environments** then shows the deployment history of each workspace. To gate production, open the `prod-sales-analytics` environment, select **Approvals and checks**, and add an **Approvals** check. On the first run, Azure DevOps may ask you to **Permit** the pipeline to use each environment.
 
 See `release/README.md` for the parameterization details.
 
 ## Notes
 
 - **Bulk publish and paginated reports:** paginated reports do not yet support service principals for Git integration and the bulk import API (`PrincipalTypeNotSupported`). `release/deploy.py` therefore publishes `rpt_demo` in a second, standard pass. This is a temporary workaround; remove the second pass once paginated reports support it.
-- **Renaming parentY:** the name appears in `infra/terraform.tfvars` (`main_workspace_name`, `ado_directory`), the `parentY/` folder, `release/parameter.yml` (`$workspace.parentY...`), `release/deploy.py` (source folder), `release/azure-pipelines.yml` (`TARGET_WORKSPACE`), and the `vl_demo` default value in `items/`.
+- **Renaming sales-analytics:** the name appears in `infra/terraform.tfvars` (`main_workspace_name`, `ado_directory`), the `sales-analytics/` folder, `release/parameter.yml` (`$workspace.sales-analytics...`), `release/deploy.py` (source folder), `release/azure-pipelines.yml` (`TARGET_WORKSPACE`), and the `vl_demo` default value in `items/`.
 - **Feature branch flow:** if the workspace is connected to a branch other than `main` (for example `dev`), merge it to `main` with a pull request before tagging.
 - **Experimental features:** bulk publish needs fabric-cicd 1.4.0 or later and the `enable_experimental_features` and `enable_bulk_publish` feature flags.
 
